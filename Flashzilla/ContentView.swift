@@ -5,35 +5,28 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var offset = CGSize.zero
-
-    @State private var isDragging = false
-
+    
     var body: some View {
-        let dragGesture = DragGesture()
-            .onChanged { value in self.offset = value.translation }
-            .onEnded { _ in
-                withAnimation {
-                    self.offset = .zero
-                    self.isDragging = false
-                }
-            }
-
-        let tapGesture = LongPressGesture()
-            .onEnded { value in
-                withAnimation {
-                    self.isDragging = true
-                }
-            }
-
-        let combined = tapGesture.sequenced(before: dragGesture)
-
-        return Circle()
-            .fill(Color.red)
-            .frame(width: 64, height: 64)
-            .scaleEffect(isDragging ? 1.5 : 1)
-            .offset(offset)
-            .gesture(combined)
+        VStack {
+            Text("Success")
+                .onTapGesture(perform: simpleSuccess(.success))
+                .padding()
+            
+            Text("Error")
+                .onTapGesture(perform: simpleSuccess(.error))
+                .padding()
+            
+            Text("Warning")
+                .onTapGesture(perform: simpleSuccess(.warning))
+                .padding()
+        }
+    }
+    
+    func simpleSuccess(_ feedback: UINotificationFeedbackGenerator.FeedbackType) -> () -> Void {
+        return {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(feedback)
+        }
     }
 }
 struct ContentView_Previews: PreviewProvider {
