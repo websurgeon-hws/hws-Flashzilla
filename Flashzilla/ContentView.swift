@@ -2,30 +2,58 @@
 //  Copyright © 2019 Peter Barclay. All rights reserved.
 //
 
+import CoreHaptics
 import SwiftUI
 
 struct ContentView: View {
+    @State var engine: CHHapticEngine?
     
     var body: some View {
-        VStack {
-            Text("Success")
-                .onTapGesture(perform: simpleSuccess(.success))
-                .padding()
-            
-            Text("Error")
-                .onTapGesture(perform: simpleSuccess(.error))
-                .padding()
-            
-            Text("Warning")
-                .onTapGesture(perform: simpleSuccess(.warning))
-                .padding()
+        Text("Hello, World!")
+            .onAppear(perform: prepareHaptics)
+            .onTapGesture(perform: complexSuccess)
+    }
+    
+    func prepareHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        do {
+            self.engine = try CHHapticEngine()
+            try engine?.start()
+        } catch {
+            print("There was an error creating the engine: \(error.localizedDescription)")
         }
     }
     
-    func simpleSuccess(_ feedback: UINotificationFeedbackGenerator.FeedbackType) -> () -> Void {
-        return {
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(feedback)
+    func complexSuccess() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        var events = [CHHapticEvent]()
+
+//        let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1)
+//        let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1)
+//        let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0)
+//        events.append(event)
+
+        for i in stride(from: 0, to: 1, by: 0.1) {
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(i))
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(i))
+            let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: i)
+            events.append(event)
+        }
+
+        for i in stride(from: 0, to: 1, by: 0.1) {
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(1 - i))
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(1 - i))
+            let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 1 + i)
+            events.append(event)
+        }
+        
+        do {
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player = try engine?.makePlayer(with: pattern)
+            try player?.start(atTime: 0)
+        } catch {
+            print("Failed to play pattern: \(error.localizedDescription).")
         }
     }
 }
