@@ -5,24 +5,20 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
 
     var body: some View {
-        Text("Hello, World!")
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-                print("Moving to the background!")
+        HStack {
+            if differentiateWithoutColor {
+                Image(systemName: "checkmark.circle")
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                print("Moving back to the foreground!")
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
-                print("User took a screenshot!")
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-                print("User changed their clock or Daylight Savings time changed")
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.keyboardDidShowNotification)) { _ in
-                print("Keyboard shown")
-            }
+
+            Text("Success")
+        }
+        .padding()
+        .background(differentiateWithoutColor ? Color.black : Color.green)
+        .foregroundColor(Color.white)
+        .clipShape(Capsule())
     }
 }
 
