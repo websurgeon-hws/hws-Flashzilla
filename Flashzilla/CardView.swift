@@ -1,14 +1,11 @@
 //
-//  CardView.swift
-//  Flashzilla
-//
-//  Created by Peter on 20/12/2019.
 //  Copyright © 2019 Peter Barclay. All rights reserved.
 //
 
 import SwiftUI
 
 struct CardView: View {
+    @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @State var isShowingAnswer = false
     @State var offset = CGSize.zero
 
@@ -18,9 +15,20 @@ struct CardView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 25, style: .continuous)
-                .fill(Color.white)
-                .shadow(radius: 10)
+            .fill(
+                differentiateWithoutColor
+                    ? Color.white
+                    : Color.white
+                        .opacity(1 - Double(abs(offset.width / 50)))
 
+            )
+            .background(
+                differentiateWithoutColor
+                    ? nil
+                    : RoundedRectangle(cornerRadius: 25, style: .continuous)
+                        .fill(offset.width > 0 ? Color.green : Color.red)
+            )
+            .shadow(radius: 10)
             VStack {
                 Text(card.prompt)
                     .font(.largeTitle)
@@ -29,6 +37,27 @@ struct CardView: View {
                     Text(card.answer)
                         .font(.title)
                         .foregroundColor(.secondary)
+                }
+                
+                if differentiateWithoutColor {
+                    VStack {
+                        Spacer()
+
+                        HStack {
+                            Image(systemName: "xmark.circle")
+                                .padding()
+                                .background(Color.black.opacity(0.7))
+                                .clipShape(Circle())
+                            Spacer()
+                            Image(systemName: "checkmark.circle")
+                                .padding()
+                                .background(Color.black.opacity(0.7))
+                                .clipShape(Circle())
+                        }
+                        .foregroundColor(.white)
+                        .font(.largeTitle)
+                        .padding()
+                    }
                 }
             }
             .onTapGesture {

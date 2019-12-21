@@ -5,6 +5,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @State private var cards = [Card](repeating: Card.example, count: 10)
 
     var body: some View {
