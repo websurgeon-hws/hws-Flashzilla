@@ -11,7 +11,8 @@ struct CardView: View {
 
     let card: Card
     var removal: (() -> Void)? = nil
-
+    private let feedback = UINotificationFeedbackGenerator()
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 25, style: .continuous)
@@ -72,12 +73,18 @@ struct CardView: View {
         .opacity(2 - Double(abs(offset.width / 50)))
         .gesture(
             DragGesture()
-                .onChanged { gesture in
-                    self.offset = gesture.translation
+                .onChanged { offset in
+                    self.offset = offset.translation
+                    self.feedback.prepare()
                 }
-
                 .onEnded { _ in
                     if abs(self.offset.width) > 100 {
+                        if self.offset.width > 0 {
+                            self.feedback.notificationOccurred(.success)
+                        } else {
+                            self.feedback.notificationOccurred(.error)
+                        }
+                        
                         self.removal?()
                     } else {
                         self.offset = .zero
