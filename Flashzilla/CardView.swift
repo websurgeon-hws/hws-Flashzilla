@@ -9,9 +9,9 @@ struct CardView: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @State var isShowingAnswer = false
     @State var offset = CGSize.zero
-
+    
     let card: Card
-    var removal: (() -> Void)? = nil
+    var removal: ((_ isCorrect: Bool) -> Void)? = nil
     private let feedback = UINotificationFeedbackGenerator()
     
     var body: some View {
@@ -68,16 +68,18 @@ struct CardView: View {
                 }
                 .onEnded { _ in
                     if abs(self.offset.width) > 100 {
+                        let isCorrect: Bool
                         if self.offset.width > 0 {
+                            isCorrect = true
                             self.feedback.notificationOccurred(.success)
                         } else {
+                            isCorrect = false
                             self.feedback.notificationOccurred(.error)
                         }
                         
-                        self.removal?()
-                    } else {
-                        self.offset = .zero
+                        self.removal?(isCorrect)
                     }
+                    self.offset = .zero
                 }
         )
     }

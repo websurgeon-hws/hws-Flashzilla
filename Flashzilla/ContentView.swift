@@ -13,12 +13,25 @@ struct ContentView: View {
     @State private var showingTimedOut = false
     @State private var isActive = true
     @State private var showingEditScreen = false
-    @State var engine: CHHapticEngine?
+    @State private var showingSettings = false
+    @State private var showingSheet = false
+    @State private var keepWrongCards = false
+    @State private var engine: CHHapticEngine?
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        ZStack {
+        let showingSheet = Binding(
+            get: {
+                return self.showingEditScreen || self.showingSettings
+            },
+            set: {
+                self.showingSettings = $0
+                self.showingEditScreen = $0
+            }
+        )
+        
+        return ZStack {
             Image(decorative: "background")
                 .resizable()
                 .scaledToFill()
@@ -38,9 +51,9 @@ struct ContentView: View {
                 
                 ZStack {
                     ForEach(0..<cards.count, id: \.self) { index in
-                        CardView(card: self.cards[index]) {
+                        CardView(card: self.cards[index]) { isCorrect in
                            withAnimation {
-                               self.removeCard(at: index)
+                                self.removeCard(at: index, isCorrect: isCorrect)
                            }
                         }
                         .stacked(at: index, in: self.cards.count)
@@ -70,6 +83,17 @@ struct ContentView: View {
                             .background(Color.black.opacity(0.7))
                             .clipShape(Circle())
                     }
+
+                    Spacer().frame(width: 20)
+
+                    Button(action: {
+                        self.showingSettings = true
+                    }) {
+                        Image(systemName: "gear")
+                            .padding()
+                            .background(Color.black.opacity(0.7))
+                            .clipShape(Circle())
+                    }
                 }
 
                 Spacer()
@@ -85,7 +109,7 @@ struct ContentView: View {
                     HStack {
                         Button(action: {
                             withAnimation {
-                                self.removeCard(at: self.cards.count - 1)
+                                self.removeCard(at: self.cards.count - 1, isCorrect: false)
                             }
                         }) {
                             Image(systemName: "xmark.circle")
@@ -99,7 +123,7 @@ struct ContentView: View {
 
                         Button(action: {
                             withAnimation {
-                                self.removeCard(at: self.cards.count - 1)
+                                self.removeCard(at: self.cards.count - 1, isCorrect: true)
                             }
                         }) {
                             Image(systemName: "checkmark.circle")
@@ -114,8 +138,8 @@ struct ContentView: View {
             }
         }
         .onAppear(perform: resetCards)
-        .sheet(isPresented: $showingEditScreen, onDismiss: resetCards) {
-            EditCards()
+        .sheet(isPresented: showingSheet, onDismiss: resetCards) {
+            self.sheetView()
         }
         .popover(isPresented: self.$showingTimedOut) {
             VStack {
@@ -159,6 +183,15 @@ struct ContentView: View {
         }
     }
     
+    func sheetView() -> some View {
+        if self.showingEditScreen == true {
+            return AnyView(EditCards())
+        } else if self.showingSettings {
+            return AnyView(SettingsView(keepWrongCards: self.$keepWrongCards))
+        } else {
+            return AnyView(Text("Something whent wrong!"))
+        }
+    }
     func prepareHaptics() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
 
@@ -190,18 +223,24 @@ struct ContentView: View {
         }
     }
 
-    func removeCard(at index: Int) {
+    func removeCard(at index: Int, isCorrect: Bool) {
         guard index >= 0 else { return }
+        
+        if !isCorrect && self.keepWrongCards {
+            cards.move(fromOffsets: [index], toOffset: 0)
+        } else {
+            cards.remove(at: index)
+        }
 
-        cards.remove(at: index)
         if cards.isEmpty {
             isActive = false
         }
     }
-    
+        
     func resetCards() {
         timeRemaining = 100
         showingTimedOut = false
+        showingSettings = false
         isActive = true
         loadData()
     }
