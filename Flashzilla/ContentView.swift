@@ -2,6 +2,7 @@
 //  Copyright © 2019 Peter Barclay. All rights reserved.
 //
 
+import CoreHaptics
 import SwiftUI
 
 struct ContentView: View {
@@ -9,8 +10,10 @@ struct ContentView: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @State private var cards = [Card]()
     @State private var timeRemaining = 100
+    @State private var showingTimedOut = false
     @State private var isActive = true
     @State private var showingEditScreen = false
+    @State var engine: CHHapticEngine?
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -114,10 +117,36 @@ struct ContentView: View {
         .sheet(isPresented: $showingEditScreen, onDismiss: resetCards) {
             EditCards()
         }
+        .popover(isPresented: self.$showingTimedOut) {
+            VStack {
+                Text("Time is up!")
+                .font(.largeTitle)
+                .padding()
+            }
+            .onAppear {
+                DispatchQueue.global().async {
+                    sleep(2)
+                    DispatchQueue.main.async {
+                        self.showingTimedOut = false
+                        self.cards = []
+                    }
+                }
+            }
+        }
         .onReceive(timer) { time in
             guard self.isActive else { return }
             if self.timeRemaining > 0 {
                 self.timeRemaining -= 1
+            }
+            
+            if self.timeRemaining == 1 && self.showingTimedOut == false {
+                self.prepareHaptics()
+            }
+            
+            if self.timeRemaining == 0 && self.showingTimedOut == false {
+                self.isActive = false
+                self.showingTimedOut = true
+                self.timedOutHaptics()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
@@ -130,6 +159,37 @@ struct ContentView: View {
         }
     }
     
+    func prepareHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        do {
+            self.engine = try CHHapticEngine()
+            try engine?.start()
+        } catch {
+            print("There was an error creating the engine: \(error.localizedDescription)")
+        }
+    }
+
+    func timedOutHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        var events = [CHHapticEvent]()
+
+        for i in stride(from: 0, to: 1, by: 0.05) {
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(i))
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(i))
+            let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: i * 2)
+            events.append(event)
+        }
+        
+        do {
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player = try engine?.makePlayer(with: pattern)
+            try player?.start(atTime: 0)
+        } catch {
+            print("Failed to play pattern: \(error.localizedDescription).")
+        }
+    }
+
     func removeCard(at index: Int) {
         guard index >= 0 else { return }
 
@@ -141,6 +201,7 @@ struct ContentView: View {
     
     func resetCards() {
         timeRemaining = 100
+        showingTimedOut = false
         isActive = true
         loadData()
     }
