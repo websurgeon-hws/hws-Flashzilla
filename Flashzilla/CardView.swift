@@ -53,7 +53,7 @@ struct CardView: View {
         .onTapGesture {
             self.isShowingAnswer.toggle()
         }
-        .animation(.spring())
+        .animation(.spring()) // TODO: Challenge 3 - determine how to prevent background color change while animating
         .padding(20)
         .multilineTextAlignment(.center)
         .rotationEffect(.degrees(Double(offset.width / 5)))
